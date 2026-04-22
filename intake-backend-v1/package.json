@@ -1,0 +1,13 @@
+{
+  "name": "intake-backend-v1",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Minimal unified intake backend prototype",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

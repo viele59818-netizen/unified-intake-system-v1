@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: intake-backend-v1
+    env: node
+    plan: free
+    rootDir: intake-backend-v1
+    buildCommand: "npm install"
+    startCommand: "npm start"
+    healthCheckPath: /health

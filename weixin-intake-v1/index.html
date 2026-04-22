@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>问题收集 v1</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="hero">
+        <p class="eyebrow">WeChat Intake Prototype</p>
+        <h1>问题收集</h1>
+        <p class="hero-copy">
+          先把输入收进来，再进入分析。这个原型先跑通文字、链接、图片、视频和专题归类，
+          后续再接微信云开发或 OpenCloud。
+        </p>
+      </section>
+
+      <section class="panel panel-form">
+        <div class="panel-header">
+          <div>
+            <h2>新建输入</h2>
+            <p>适合从微信、飞书、网页、邮件里转过来的原始内容。</p>
+          </div>
+          <button id="resetFormButton" class="ghost-button" type="button">清空表单</button>
+        </div>
+
+        <form id="intakeForm" class="intake-form">
+          <label class="field">
+            <span>专题名</span>
+            <input id="topic" name="topic" type="text" placeholder="例如：产品舒适性问题" required>
+          </label>
+
+          <label class="field">
+            <span>输入标题</span>
+            <input id="title" name="title" type="text" placeholder="例如：客户反馈第二版还是按不到位" required>
+          </label>
+
+          <label class="field">
+            <span>来源类型</span>
+            <select id="sourceType" name="sourceType">
+              <option value="微信">微信</option>
+              <option value="飞书">飞书</option>
+              <option value="网页">网页</option>
+              <option value="邮件">邮件</option>
+              <option value="图片">图片</option>
+              <option value="视频">视频</option>
+              <option value="其他">其他</option>
+            </select>
+          </label>
+
+          <div class="quick-source-row" aria-label="快速选择来源">
+            <button class="quick-source-button" data-source="微信" type="button">微信</button>
+            <button class="quick-source-button" data-source="飞书" type="button">飞书</button>
+            <button class="quick-source-button" data-source="网页" type="button">网页</button>
+            <button class="quick-source-button" data-source="视频" type="button">视频</button>
+          </div>
+
+          <label class="field">
+            <span>原始内容</span>
+            <textarea id="rawContent" name="rawContent" rows="7" placeholder="把聊天原文、语音转文字或补充说明直接贴进来"></textarea>
+          </label>
+
+          <label class="field">
+            <span>链接</span>
+            <input id="link" name="link" type="url" placeholder="https://example.com/article">
+          </label>
+
+          <div class="field-grid">
+            <label class="field">
+              <span>图片</span>
+              <input id="imageFiles" name="imageFiles" type="file" accept="image/*" multiple>
+              <div id="imageFileList" class="selected-file-list"></div>
+            </label>
+
+            <label class="field">
+              <span>视频</span>
+              <input id="videoFiles" name="videoFiles" type="file" accept="video/*" multiple>
+              <div id="videoFileList" class="selected-file-list"></div>
+            </label>
+          </div>
+
+          <label class="field">
+            <span>备注</span>
+            <textarea id="note" name="note" rows="4" placeholder="例如：这条信息很关键，可能对应退货主因"></textarea>
+          </label>
+
+          <div class="actions">
+            <button class="primary-button" type="submit">提交到输入池</button>
+            <button id="seedDemoButton" class="secondary-button" type="button">载入示例数据</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel panel-status">
+        <div class="panel-header">
+          <div>
+            <h2>输入池状态</h2>
+            <p>当前版本先把记录存到浏览器本地，后续可替换成云开发数据库。</p>
+          </div>
+          <div class="status-actions">
+            <button id="exportJsonButton" class="ghost-button" type="button">导出 JSON</button>
+            <button id="exportMarkdownButton" class="ghost-button" type="button">导出 Markdown</button>
+          </div>
+        </div>
+
+        <div class="stats" id="stats">
+          <article class="stat-card">
+            <span>记录数</span>
+            <strong id="entryCount">0</strong>
+          </article>
+          <article class="stat-card">
+            <span>专题数</span>
+            <strong id="topicCount">0</strong>
+          </article>
+          <article class="stat-card">
+            <span>最近提交</span>
+            <strong id="lastUpdated">暂无</strong>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel panel-topics">
+        <div class="panel-header">
+          <div>
+            <h2>专题概览</h2>
+            <p>按专题聚合输入，先看哪个主题最值得优先处理。</p>
+          </div>
+        </div>
+        <div id="topicList" class="topic-list"></div>
+      </section>
+
+      <section id="topicFocusPanel" class="panel panel-topic-focus" hidden>
+        <div class="panel-header">
+          <div>
+            <h2 id="topicFocusTitle">专题详情</h2>
+            <p id="topicFocusSubtitle">这里会显示当前选中专题的聚合信息。</p>
+          </div>
+          <div class="status-actions">
+            <button id="exportTopicSummaryButton" class="ghost-button" type="button">导出专题摘要</button>
+            <button id="exportTopicActionsButton" class="ghost-button" type="button">导出动作清单</button>
+            <button id="exportTaskFormatButton" class="ghost-button" type="button">导出任务格式</button>
+            <button id="deleteTopicButton" class="ghost-button danger-button" type="button">删除专题</button>
+            <button id="clearTopicFocusButton" class="ghost-button" type="button">返回全部专题</button>
+          </div>
+        </div>
+        <div id="topicFocusStats" class="stats"></div>
+        <div id="topicFocusSummary" class="topic-focus-summary"></div>
+        <div class="topic-note-box">
+          <label class="field">
+            <span>专题备注</span>
+            <textarea id="topicNoteInput" rows="4" placeholder="补一句你的判断、背景、当前关注点"></textarea>
+          </label>
+          <div class="actions">
+            <button id="saveTopicNoteButton" class="secondary-button" type="button">保存专题备注</button>
+          </div>
+        </div>
+        <div class="topic-note-box">
+          <div class="panel-header">
+            <div>
+              <h3>下一步动作</h3>
+              <p>把专题要推进的动作拆成轻量任务，后面更容易接任务系统。</p>
+            </div>
+          </div>
+          <div class="topic-action-composer">
+            <input id="topicActionInput" type="text" placeholder="例如：补做第二版多体型验证">
+            <button id="addTopicActionButton" class="secondary-button" type="button">添加动作</button>
+          </div>
+          <div id="topicActionList" class="topic-action-list"></div>
+          <div class="actions">
+            <button id="saveTopicActionButton" class="secondary-button" type="button">保存动作清单</button>
+          </div>
+        </div>
+        <div class="topic-related-entries">
+          <h3>最近输入</h3>
+          <div id="topicRecentEntries" class="topic-recent-list"></div>
+        </div>
+      </section>
+
+      <section class="panel panel-list">
+        <div class="panel-header">
+          <div>
+            <h2>提交记录</h2>
+            <p>这部分模拟未来的“待处理输入池”。</p>
+          </div>
+          <div class="status-actions">
+            <select id="starFilter" class="filter-select" aria-label="按重点筛选">
+              <option value="全部">全部优先级</option>
+              <option value="重点">只看重点</option>
+            </select>
+            <select id="statusFilter" class="filter-select" aria-label="按状态筛选">
+              <option value="全部">全部状态</option>
+              <option value="待处理">待处理</option>
+              <option value="处理中">处理中</option>
+              <option value="已归档">已归档</option>
+            </select>
+            <select id="topicFilter" class="filter-select" aria-label="按专题筛选">
+              <option value="全部">全部专题</option>
+            </select>
+            <button id="clearEntriesButton" class="ghost-button danger-button" type="button">清空记录</button>
+          </div>
+        </div>
+
+        <div id="emptyState" class="empty-state">
+          <h3>还没有提交记录</h3>
+          <p>先从上面的表单提交一条输入，看看整个流程是否顺手。</p>
+        </div>
+
+        <div id="entryList" class="entry-list" aria-live="polite"></div>
+      </section>
+
+      <section class="panel panel-dev">
+        <div class="panel-header">
+          <div>
+            <h2>后续接入点</h2>
+            <p>这个原型先跑本地存储，后面可逐步替换成正式后端。</p>
+          </div>
+        </div>
+        <ul class="dev-list">
+          <li>把 `saveEntry()` 替换成微信云开发/OpenCloud 的写入接口。</li>
+          <li>把图片和视频上传改成云存储文件 ID。</li>
+          <li>把“提交记录”改成按专题拉取的输入池列表。</li>
+          <li>提交成功后，可自动推送飞书群或生成专题待办。</li>
+        </ul>
+      </section>
+    </main>
+
+    <div id="toast" class="toast" hidden></div>
+
+    <template id="entryTemplate">
+      <article class="entry-card">
+        <header class="entry-card-header">
+          <div>
+            <p class="entry-topic"></p>
+            <h3 class="entry-title"></h3>
+          </div>
+          <div class="entry-header-meta">
+            <span class="entry-source"></span>
+            <button class="entry-toggle-button ghost-button" type="button">展开详情</button>
+          </div>
+        </header>
+        <div class="entry-meta"></div>
+        <div class="entry-controls">
+          <label>
+            <span>状态</span>
+            <select class="entry-status-select" aria-label="更新输入状态">
+              <option value="待处理">待处理</option>
+              <option value="处理中">处理中</option>
+              <option value="已归档">已归档</option>
+            </select>
+          </label>
+          <button class="entry-star-button ghost-button" type="button">标记重点</button>
+        </div>
+        <div class="entry-summary"></div>
+        <div class="entry-detail" hidden>
+          <div class="entry-body"></div>
+          <div class="entry-assets"></div>
+        </div>
+      </article>
+    </template>
+
+    <script src="./app.js"></script>
+  </body>
+  </html>
