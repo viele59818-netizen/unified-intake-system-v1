@@ -427,11 +427,56 @@ function renderAssetChips(container, label, files) {
   container.appendChild(title);
 
   files.forEach((file) => {
-    const chip = document.createElement("span");
+    const isImage = String(file.type || "").startsWith("image/");
+    const isVideo = String(file.type || "").startsWith("video/");
+    const source = resolveAssetUrl(file);
+
+    if (source && isImage) {
+      const link = document.createElement("a");
+      link.className = "asset-preview-link";
+      link.href = source;
+      link.target = "_blank";
+      link.rel = "noreferrer";
+
+      const preview = document.createElement("img");
+      preview.className = "asset-preview-image";
+      preview.alt = file.name;
+      preview.src = source;
+      link.appendChild(preview);
+      container.appendChild(link);
+    }
+
+    if (source && isVideo) {
+      const video = document.createElement("video");
+      video.className = "asset-preview-video";
+      video.src = source;
+      video.controls = true;
+      video.preload = "metadata";
+      container.appendChild(video);
+    }
+
+    const chip = source ? document.createElement("a") : document.createElement("span");
     chip.className = "asset-chip";
+    if (source) {
+      chip.href = source;
+      chip.target = "_blank";
+      chip.rel = "noreferrer";
+    }
     chip.textContent = `${file.name} (${formatBytes(file.size)})`;
     container.appendChild(chip);
   });
+}
+
+function resolveAssetUrl(file) {
+  if (file.publicUrl) {
+    return file.publicUrl.startsWith("http") ? file.publicUrl : `${API_BASE_URL}${file.publicUrl}`;
+  }
+
+  if (file.dataUrl) {
+    return file.dataUrl;
+  }
+
+  return "";
 }
 
 function updateStats(entries) {
