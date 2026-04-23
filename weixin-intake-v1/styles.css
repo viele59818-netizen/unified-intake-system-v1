@@ -429,6 +429,28 @@ button {
   background: #f3ede2;
   color: var(--ink);
   font-size: 0.86rem;
+  text-decoration: none;
+}
+
+.asset-preview-link {
+  display: inline-flex;
+  margin: 8px 10px 0 0;
+}
+
+.asset-preview-image,
+.asset-preview-video {
+  width: 108px;
+  height: 108px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: #f4efe6;
+  object-fit: cover;
+  box-shadow: 0 10px 22px rgba(31, 41, 51, 0.08);
+}
+
+.asset-preview-video {
+  display: inline-flex;
+  margin: 8px 10px 0 0;
 }
 
 .dev-list {
