@@ -6,8 +6,7 @@ const { randomUUID } = require("node:crypto");
 const PORT = Number(process.env.PORT || 8787);
 const HOST = process.env.HOST || "0.0.0.0";
 const frontendDir = path.join(__dirname, "..", "weixin-intake-v1");
-
-const dataDir = path.join(__dirname, "data");
+const dataDir = path.resolve(process.env.DATA_DIR || path.join(__dirname, "data"));
 const uploadsDir = path.join(dataDir, "uploads");
 const entriesFile = path.join(dataDir, "entries.json");
 const topicNotesFile = path.join(dataDir, "topic-notes.json");
@@ -25,23 +24,28 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    if (req.method === "GET" && req.url === "/health") {
-      respondJson(res, 200, { ok: true, service: "intake-backend-v1" });
+    if ((req.method === "GET" || req.method === "HEAD") && req.url === "/health") {
+      respondJson(res, 200, { ok: true, service: "intake-backend-v1" }, req.method === "HEAD");
       return;
     }
 
-    if (req.method === "GET" && (req.url === "/" || req.url === "/index.html")) {
-      serveStaticFile(res, path.join(frontendDir, "index.html"));
+    if ((req.method === "GET" || req.method === "HEAD") && (req.url === "/" || req.url === "/index.html")) {
+      serveStaticFile(res, path.join(frontendDir, "index.html"), req.method === "HEAD");
       return;
     }
 
-    if (req.method === "GET" && req.url === "/styles.css") {
-      serveStaticFile(res, path.join(frontendDir, "styles.css"));
+    if ((req.method === "GET" || req.method === "HEAD") && req.url === "/styles.css") {
+      serveStaticFile(res, path.join(frontendDir, "styles.css"), req.method === "HEAD");
       return;
     }
 
-    if (req.method === "GET" && req.url === "/app.js") {
-      serveStaticFile(res, path.join(frontendDir, "app.js"));
+    if ((req.method === "GET" || req.method === "HEAD") && req.url === "/app.js") {
+      serveStaticFile(res, path.join(frontendDir, "app.js"), req.method === "HEAD");
+      return;
+    }
+
+    if ((req.method === "GET" || req.method === "HEAD") && req.url.startsWith("/uploads/")) {
+      serveUploadFile(res, req.url, req.method === "HEAD");
       return;
     }
 
@@ -167,16 +171,16 @@ function ensureStorage() {
 
 function setCors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET,POST,DELETE,OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PATCH,DELETE,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
 
-function respondJson(res, statusCode, payload) {
+function respondJson(res, statusCode, payload, headOnly = false) {
   res.writeHead(statusCode, { "Content-Type": "application/json; charset=utf-8" });
-  res.end(JSON.stringify(payload, null, 2));
+  res.end(headOnly ? "" : JSON.stringify(payload, null, 2));
 }
 
-function serveStaticFile(res, filePath) {
+function serveStaticFile(res, filePath, headOnly = false) {
   if (!fs.existsSync(filePath)) {
     respondJson(res, 404, { ok: false, error: "Static file not found" });
     return;
@@ -184,7 +188,27 @@ function serveStaticFile(res, filePath) {
 
   const extension = path.extname(filePath);
   res.writeHead(200, { "Content-Type": `${getContentType(extension)}; charset=utf-8` });
-  res.end(fs.readFileSync(filePath));
+  res.end(headOnly ? "" : fs.readFileSync(filePath));
+}
+
+function serveUploadFile(res, requestUrl, headOnly = false) {
+  const relativePath = decodeURIComponent(requestUrl.replace(/^\/+/, ""));
+  const filePath = path.join(dataDir, relativePath);
+  const normalized = path.normalize(filePath);
+
+  if (!normalized.startsWith(path.normalize(uploadsDir + path.sep))) {
+    respondJson(res, 403, { ok: false, error: "Forbidden" });
+    return;
+  }
+
+  if (!fs.existsSync(normalized)) {
+    respondJson(res, 404, { ok: false, error: "Upload not found" });
+    return;
+  }
+
+  const extension = path.extname(normalized);
+  res.writeHead(200, { "Content-Type": `${getContentType(extension)}` });
+  res.end(headOnly ? "" : fs.readFileSync(normalized));
 }
 
 function readEntries() {
@@ -280,6 +304,7 @@ function persistFile(file, entryId, category) {
     size: file.size,
     storedAs: safeName,
     relativePath: path.relative(dataDir, outputPath),
+    publicUrl: `/uploads/${encodeURIComponent(safeName)}`,
   };
 }
 
@@ -299,6 +324,19 @@ function getContentType(extension) {
       return "text/css";
     case ".js":
       return "application/javascript";
+    case ".png":
+      return "image/png";
+    case ".jpg":
+    case ".jpeg":
+      return "image/jpeg";
+    case ".gif":
+      return "image/gif";
+    case ".webp":
+      return "image/webp";
+    case ".mp4":
+      return "video/mp4";
+    case ".mov":
+      return "video/quicktime";
     default:
       return "application/octet-stream";
   }
