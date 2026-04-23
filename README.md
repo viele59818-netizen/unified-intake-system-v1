@@ -44,7 +44,7 @@ npm start
 浏览器访问：
 
 ```text
-http://127.0.0.1:8787
+http://localhost:3001
 ```
 
 ## 当前推荐的下一步
